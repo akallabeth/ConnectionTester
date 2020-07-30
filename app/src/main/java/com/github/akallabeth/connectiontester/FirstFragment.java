@@ -47,10 +47,12 @@ public class FirstFragment extends Fragment {
             txt = getMsgTxt(e);
         }
         final String finalTxt = txt;
-        getActivity().runOnUiThread(new Runnable() {
+        requireActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                dialog.dismiss();
+                if (dialog != null) {
+                    dialog.dismiss();
+                }
                 dialog = null;
                 result.setText(finalTxt);
                 result.setVisibility(View.VISIBLE);
@@ -75,7 +77,7 @@ public class FirstFragment extends Fragment {
     }
 
     private void testConnect(final String urlString) {
-        getActivity().runOnUiThread(new Runnable() {
+        requireActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 dialog = new ProgressDialog(requireContext());
