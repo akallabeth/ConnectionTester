@@ -101,6 +101,7 @@ public class FirstFragment extends Fragment {
                     }
                 } catch (Exception e) {
                     exMsg(e);
+                    return;
                 }
                 exMsg(null);
             }
