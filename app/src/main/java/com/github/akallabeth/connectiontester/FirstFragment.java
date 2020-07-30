@@ -4,6 +4,7 @@ import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,14 +16,27 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
+import org.apache.commons.net.util.TrustManagerUtils;
+
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
 
 public class FirstFragment extends Fragment {
 
@@ -41,8 +55,8 @@ public class FirstFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_first, container, false);
     }
 
-    private void exMsg(Exception e) {
-        String txt = "success!";
+    private void exMsg(Exception e, int code) {
+        String txt = "success! http code " + String.valueOf(code);
         if (e != null) {
             txt = getMsgTxt(e);
         }
@@ -94,22 +108,46 @@ public class FirstFragment extends Fragment {
                 try {
                     URL url = new URL(urlString);
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+                    if (connection instanceof HttpsURLConnection) {
+                        HttpsURLConnection ssl = (HttpsURLConnection) connection;
+
+                        SSLContext sslCtx;
+                        try {
+                            TrustManager tm = TrustManagerUtils.getAcceptAllTrustManager();
+                            HostnameVerifier hv = new HostnameVerifier() {
+                                @Override
+                                public boolean verify(String s, SSLSession sslSession) {
+                                    return true;
+                                }
+                            };
+                            TrustManager[] tms = new TrustManager[]{tm};
+                            sslCtx = SSLContext.getInstance("TLS");
+                            sslCtx.init(null, tms, null);
+
+                            ssl.setHostnameVerifier(hv);
+                            ssl.setSSLSocketFactory(sslCtx.getSocketFactory());
+                        } catch (KeyManagementException | NoSuchAlgorithmException e) {
+                            throw new IOException("SSLContext.getInstance(TLS) failed");
+                        }
+                    }
+
                     connection.connect();
                     try {
+                        int responseCode = connection.getResponseCode();
+                        exMsg(null, responseCode);
                     } finally {
                         connection.disconnect();
                     }
                 } catch (Exception e) {
-                    exMsg(e);
-                    return;
+                    exMsg(e, -1);
                 }
-                exMsg(null);
             }
         };
         try {
             executor.submit(task);
         } catch (Exception e) {
-            exMsg(e);
+            exMsg(e, -1);
         }
     }
 
