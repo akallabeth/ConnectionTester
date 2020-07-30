@@ -109,6 +109,7 @@ public class FirstFragment extends Fragment {
                     URL url = new URL(urlString);
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
+                    connection.setConnectTimeout(10000);
                     if (connection instanceof HttpsURLConnection) {
                         HttpsURLConnection ssl = (HttpsURLConnection) connection;
 
